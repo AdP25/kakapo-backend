@@ -1,0 +1,24 @@
+# Secrets — never commit
+.env
+infrastructure/terraform/terraform.tfvars
+
+# Terraform state and cache
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+.terraform.lock.hcl
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
