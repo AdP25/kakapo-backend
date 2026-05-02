@@ -1,0 +1,14 @@
+aws_region          = "us-east-1"
+environment         = "prod"
+app_name            = "kakapo"
+
+# Generate a strong random password: openssl rand -base64 32
+db_password         = "REPLACE_ME"
+
+openai_api_key      = "sk-REPLACE_ME"
+anthropic_api_key   = "sk-ant-REPLACE_ME"
+
+# This is the raw key value your users/testers will call the API with
+# Generate one: openssl rand -base64 32
+initial_admin_key   = "REPLACE_ME"
+initial_tenant_name = "My Org"
