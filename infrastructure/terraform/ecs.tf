@@ -37,12 +37,11 @@ resource "aws_ecs_task_definition" "api" {
     }]
 
     environment = [
-      { name = "ENVIRONMENT",          value = var.environment },
-      { name = "INITIAL_TENANT_NAME",  value = var.initial_tenant_name },
-      {
-        name  = "DATABASE_URL"
-        value = "postgresql+asyncpg://kakapo:${var.db_password}@${aws_db_instance.postgres.address}:5432/kakapo"
-      },
+      { name = "ENVIRONMENT",         value = var.environment },
+      { name = "INITIAL_TENANT_NAME", value = var.initial_tenant_name },
+      { name = "DB_HOST",             value = aws_db_instance.postgres.address },
+      { name = "DB_NAME",             value = "kakapo" },
+      { name = "DB_USER",             value = "kakapo" },
       {
         name  = "REDIS_URL"
         value = "redis://${aws_elasticache_cluster.redis.cache_nodes[0].address}:6379"
@@ -61,6 +60,10 @@ resource "aws_ecs_task_definition" "api" {
       {
         name      = "INITIAL_ADMIN_KEY"
         valueFrom = aws_secretsmanager_secret.initial_admin_key.arn
+      },
+      {
+        name      = "DB_PASSWORD"
+        valueFrom = aws_secretsmanager_secret.db_password.arn
       },
     ]
 
@@ -81,9 +84,6 @@ resource "aws_ecs_task_definition" "api" {
       startPeriod = 60
     }
   }])
-
-  # We use a separate task definition override to inject DB/Redis URLs after apply.
-  # See outputs.tf for the rendered DATABASE_URL value.
 
   tags = local.common_tags
 }

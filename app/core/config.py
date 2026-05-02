@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from typing import Optional
 
@@ -6,8 +7,14 @@ class Settings(BaseSettings):
     app_name: str = "AI Gateway"
     environment: str = "development"
 
-    # Postgres (asyncpg)
-    database_url: str = "postgresql+asyncpg://kakapo:password@localhost:5432/kakapo"
+    # Full URL — set directly in local dev / docker-compose via DATABASE_URL env var
+    database_url: Optional[str] = None
+
+    # Component parts — used in ECS where DB_PASSWORD is injected from Secrets Manager
+    db_host: Optional[str] = None
+    db_user: str = "kakapo"
+    db_name: str = "kakapo"
+    db_password: Optional[str] = None
 
     # Redis
     redis_url: str = "redis://localhost:6379"
@@ -39,6 +46,19 @@ class Settings(BaseSettings):
     llm_hard_timeout: float = 8.0
 
     model_config = {"env_file": ".env", "case_sensitive": False}
+
+    @model_validator(mode="after")
+    def assemble_db_url(self) -> "Settings":
+        if self.database_url:
+            return self
+        if self.db_host and self.db_password:
+            self.database_url = (
+                f"postgresql+asyncpg://{self.db_user}:{self.db_password}"
+                f"@{self.db_host}:5432/{self.db_name}"
+            )
+        else:
+            self.database_url = "postgresql+asyncpg://kakapo:password@localhost:5432/kakapo"
+        return self
 
 
 settings = Settings()
