@@ -6,8 +6,8 @@ minutes so the dashboard has baseline history on first load.
 IMPORTANT: The proxy MUST be stopped before running this script — it
 writes to cache.pkl and proxy.db directly.
 
-Run from src/backend/:
-    python3 seed_cache.py
+Run from repository root:
+    python seed_cache.py
 """
 
 import json

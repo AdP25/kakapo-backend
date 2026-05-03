@@ -1,31 +1,71 @@
 .DS_Store
+Thumbs.db
+
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.pyo
 *.pyd
 .Python
+*.so
+
+# Virtual environments (never commit — huge)
 .venv/
 venv/
 env/
+ENV/
 
-# Packaging
+# Packaging / installs
 build/
 dist/
 *.egg-info/
+*.egg
+pip-wheel-metadata/
 
-# Test and lint artifacts
+# Test / lint / typecheck caches
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 .coverage
 htmlcov/
+.tox/
+.nox/
 
-# Local runtime files
+# Local secrets (never commit)
+.env
+.env.local
+.env.*.local
+
+# Runtime / local data (SQLite, demos)
 *.db
 *.db-journal
+*.sqlite
+*.sqlite3
 *.pkl
 *.log
 
-# IDE/editor
+# ML / embedding caches (downloads can be gigabytes)
+.cache/
+.huggingface/
+transformers_cache/
+torch_hub/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+
+# Jupyter / notebooks checkpoints
+.ipynb_checkpoints/
+
+# IDE / editors
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+
+# OS / misc
+*.tmp
+*.temp

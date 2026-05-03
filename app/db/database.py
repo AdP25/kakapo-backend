@@ -42,6 +42,13 @@ def init_db(conn: sqlite3.Connection) -> None:
             cache_status TEXT,
             latency_ms INTEGER
         );
+
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at REAL NOT NULL
+        );
         """
     )
 

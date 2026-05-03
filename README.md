@@ -1,23 +1,28 @@
 # Kakapo Backend
 
 FastAPI-based LLM proxy with:
+
 - exact cache (SQLite)
 - semantic cache (FAISS + sentence-transformers embeddings)
 - request/cost analytics endpoints
+- JWT auth (`/auth/register`, `/auth/login`, `/auth/me`)
 
-## Repository Layout
+## Repository layout
 
 ```text
 kakapo-backend/
 ├── .github/workflows/deploy-aws-ecr.yml   # GitHub → Amazon ECR (optional ECS roll)
 ├── deployment/examples/spa-s3-cloudfront.workflow.yml  # copy to frontend repo
 ├── Dockerfile
-├── src/
-│   └── backend/
-│       ├── proxy.py            # CLI entry (uvicorn)
-│       ├── seed_cache.py       # Seed script for cache + demo history
-│       ├── requirements.txt    # Local / CI Python deps
-│       └── requirements-docker.txt  # Docker: non-ML deps (torch + ST installed in image)
+├── app/                 # Application package (routes, services, db)
+│   ├── main.py
+│   ├── routers/
+│   ├── services/
+│   └── ...
+├── proxy.py             # CLI entrypoint → uvicorn
+├── seed_cache.py        # Optional seed script (stop server first)
+├── requirements.txt     # Local / CI Python deps
+├── requirements-docker.txt  # Docker: non-ML deps (torch + ST installed in image)
 ├── tests/
 ├── .env.example
 ├── .gitignore
@@ -25,61 +30,61 @@ kakapo-backend/
 └── README.md
 ```
 
-## Quick Start
+## Quick start
 
-1. Create and activate a virtual environment.
-2. Install dependencies:
+1. Create and activate a virtual environment (keep it **outside** git or rely on `.gitignore`).
 
 ```bash
-pip install -r src/backend/requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-3. Configure environment:
+2. Configure environment:
 
 ```bash
 cp .env.example .env
 ```
 
-4. Run the API:
+3. Run the API **from the repository root**:
 
 ```bash
-python src/backend/proxy.py --host 0.0.0.0 --port 8000
+python proxy.py --host 0.0.0.0 --port 8000
 ```
 
-5. Optional: seed demo cache/history (with server stopped):
+4. Optional: seed demo cache/history (**stop the server first**):
 
 ```bash
-python src/backend/seed_cache.py
+python seed_cache.py
 ```
 
-## Environment Variables
+## Environment variables
 
-See `.env.example` for the full list. The most important keys:
-- `OPENAI_API_KEY`
-- `OPENAI_BASE_URL`
-- `DEFAULT_MODEL`
-- `MOCK_MODE`
-- `SEMANTIC_THRESHOLD`
-- `SEMANTIC_TTL_SECONDS`
-- `SEMANTIC_MAX_ENTRIES`
+See `.env.example`. Important keys include:
 
-## API Endpoints
+- `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `DEFAULT_MODEL`, `MOCK_MODE`
+- Semantic cache: `SEMANTIC_THRESHOLD`, `SEMANTIC_TTL_SECONDS`, `SEMANTIC_MAX_ENTRIES`
+- Auth: `JWT_SECRET`, `JWT_EXPIRE_MINUTES`
 
-- `GET /health` - load balancer liveness (JSON `{"status":"ok"}`)
-- `POST /v1/chat/completions` - proxy request with exact + semantic cache
-- `GET /api/stats` - aggregate usage and savings
-- `GET /api/semantic-cache` - inspect semantic cache entries
-- `DELETE /api/semantic-cache` - clear semantic cache
+## API overview
+
+- `GET /health` — load balancer liveness (`{"status":"ok"}`)
+- `POST /auth/register`, `POST /auth/login`, `GET /auth/me`
+- `POST /v1/chat/completions`
+- `GET /api/stats`
+- `GET` / `DELETE /api/semantic-cache`
+
+Open **`/docs`** for interactive Swagger UI.
 
 ## Deploy (GitHub → AWS, MVP)
 
 **Backend (this repo):** push to `main` runs `.github/workflows/deploy-aws-ecr.yml`, which builds the `Dockerfile` and pushes `:latest` and `:$GITHUB_SHA` to ECR.
 
-1. In AWS, create an **ECR** repository (e.g. `kakapo-backend`).
+1. In AWS, create an **ECR** repository (or use your namespaced repo).
 2. Configure **OIDC** for GitHub Actions and an IAM role that can push to that repository (and optionally `ecs:UpdateService` for the deploy step).
 3. In the GitHub repo **Settings → Secrets and variables → Actions**:
    - Secret: `AWS_ROLE_ARN` (assume-role ARN for OIDC).
-   - Variables: `AWS_REGION`, `ECR_REPOSITORY` (override defaults in the workflow if you like).
+   - Variables: `AWS_REGION`, `ECR_REPOSITORY` (must match the ECR repo name, e.g. `kakapo/kakapo-backend`).
    - Optional: `ENABLE_ECS_DEPLOY` = `true`, plus `ECS_CLUSTER` and `ECS_SERVICE`, to force a new ECS deployment after each push.
 4. Run the API on **ECS Fargate**, **App Runner**, or **EC2** from that image. Inject env at runtime (see `.env.example`); do not bake secrets into the image.
 
@@ -96,15 +101,8 @@ If the build fails with **read-only file system** or errors under `nvidia/cudnn`
 
 ## Development
 
-Install dev tools:
-
 ```bash
 pip install -e ".[dev]"
-```
-
-Run checks:
-
-```bash
 ruff check .
 pytest
 ```
