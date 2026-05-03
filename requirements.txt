@@ -1,1 +1,11 @@
--r src/backend/requirements.txt
+# Kakapo LLM proxy — Python 3.10+ recommended
+fastapi>=0.110,<1
+uvicorn[standard]>=0.27,<1
+httpx>=0.27,<1
+tiktoken>=0.6
+numpy>=1.24
+faiss-cpu>=1.7.4,<2
+sentence-transformers>=2.6,<4
+bcrypt>=4.1,<5
+PyJWT>=2.8,<3
+email-validator>=2.1,<3

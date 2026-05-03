@@ -1,82 +1,79 @@
 # Kakapo Backend
 
 FastAPI-based LLM proxy with:
+
 - exact cache (SQLite)
 - semantic cache (FAISS + sentence-transformers embeddings)
 - request/cost analytics endpoints
+- JWT auth (`/auth/register`, `/auth/login`, `/auth/me`)
 
-## Repository Layout
+## Repository layout
 
 ```text
 kakapo-backend/
-├── src/
-│   └── backend/
-│       ├── proxy.py            # Main FastAPI app
-│       ├── seed_cache.py       # Seed script for cache + demo history
-│       └── requirements.txt    # Runtime dependencies
-├── tests/                      # Test suite (starter structure)
-├── .env.example                # Environment variable template
-├── .gitignore
-├── pyproject.toml              # Project + tooling config
+├── app/                 # Application package (routes, services, db)
+│   ├── main.py
+│   ├── routers/
+│   ├── services/
+│   └── ...
+├── proxy.py             # CLI entrypoint → uvicorn
+├── seed_cache.py        # Optional seed script (stop server first)
+├── requirements.txt
+├── tests/
+├── .env.example
+├── pyproject.toml
 └── README.md
 ```
 
-## Quick Start
+## Quick start
 
-1. Create and activate a virtual environment.
-2. Install dependencies:
+1. Create and activate a virtual environment (keep it **outside** git or rely on `.gitignore`).
 
 ```bash
-pip install -r src/backend/requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-3. Configure environment:
+2. Configure environment:
 
 ```bash
 cp .env.example .env
 ```
 
-4. Run the API:
+3. Run the API **from the repository root**:
 
 ```bash
-python src/backend/proxy.py --host 0.0.0.0 --port 8000
+python proxy.py --host 0.0.0.0 --port 8000
 ```
 
-5. Optional: seed demo cache/history (with server stopped):
+4. Optional: seed demo cache/history (**stop the server first**):
 
 ```bash
-python src/backend/seed_cache.py
+python seed_cache.py
 ```
 
-## Environment Variables
+## Environment variables
 
-See `.env.example` for the full list. The most important keys:
-- `OPENAI_API_KEY`
-- `OPENAI_BASE_URL`
-- `DEFAULT_MODEL`
-- `MOCK_MODE`
-- `SEMANTIC_THRESHOLD`
-- `SEMANTIC_TTL_SECONDS`
-- `SEMANTIC_MAX_ENTRIES`
+See `.env.example`. Important keys include:
 
-## API Endpoints
+- `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `DEFAULT_MODEL`, `MOCK_MODE`
+- Semantic cache: `SEMANTIC_THRESHOLD`, `SEMANTIC_TTL_SECONDS`, `SEMANTIC_MAX_ENTRIES`
+- Auth: `JWT_SECRET`, `JWT_EXPIRE_MINUTES`
 
-- `POST /v1/chat/completions` - proxy request with exact + semantic cache
-- `GET /api/stats` - aggregate usage and savings
-- `GET /api/semantic-cache` - inspect semantic cache entries
-- `DELETE /api/semantic-cache` - clear semantic cache
+## API overview
+
+- `POST /auth/register`, `POST /auth/login`, `GET /auth/me`
+- `POST /v1/chat/completions`
+- `GET /api/stats`
+- `GET` / `DELETE /api/semantic-cache`
+
+Open **`/docs`** for interactive Swagger UI.
 
 ## Development
 
-Install dev tools:
-
 ```bash
 pip install -e ".[dev]"
-```
-
-Run checks:
-
-```bash
 ruff check .
 pytest
 ```

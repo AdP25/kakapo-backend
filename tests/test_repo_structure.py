@@ -7,8 +7,9 @@ def test_expected_paths_exist():
         root / "README.md",
         root / "pyproject.toml",
         root / ".env.example",
-        root / "src" / "backend" / "proxy.py",
-        root / "src" / "backend" / "seed_cache.py",
+        root / "app" / "main.py",
+        root / "proxy.py",
+        root / "seed_cache.py",
     ]
     for path in expected:
         assert path.exists(), f"Missing required path: {path}"
