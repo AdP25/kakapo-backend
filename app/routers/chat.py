@@ -1,4 +1,4 @@
-"""OpenAI-compatible chat completions (exact + semantic cache + upstream)."""
+"""OpenAI-compatible chat completions (exact cache + upstream)."""
 
 from __future__ import annotations
 
@@ -11,13 +11,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import DEFAULT_MODEL
 from app.core.tokenizer import get_tokenizer
-from app.services.cache_service import (
-    exact_cache_key,
-    exact_lookup,
-    exact_store,
-    semantic_add,
-    semantic_lookup,
-)
+from app.services.cache_service import exact_cache_key, exact_lookup, exact_store
 from app.services.llm_service import get_completion
 from app.services.stats_service import log_request, messages_token_count
 
@@ -49,14 +43,6 @@ async def chat_completions(request: dict):
         log_request(model, prompt_hash, prompt_preview, tokens_in, tokens_out, "exact", int((time.time() - t0) * 1000))
         return JSONResponse(content=resp)
 
-    if last_user_msg.strip():
-        sem_hit = semantic_lookup(last_user_msg)
-        if sem_hit:
-            resp = json.loads(sem_hit["response_json"])
-            tokens_out = resp.get("usage", {}).get("completion_tokens", 0)
-            log_request(model, prompt_hash, prompt_preview, tokens_in, tokens_out, "semantic", int((time.time() - t0) * 1000))
-            return JSONResponse(content=resp)
-
     try:
         resp = await get_completion(request, tokens_in)
     except RuntimeError as exc:
@@ -65,6 +51,5 @@ async def chat_completions(request: dict):
     tokens_out = resp.get("usage", {}).get("completion_tokens", 0)
     resp_json = json.dumps(resp)
     exact_store(key, resp_json)
-    semantic_add(last_user_msg, resp_json)
     log_request(model, prompt_hash, prompt_preview, tokens_in, tokens_out, "miss", int((time.time() - t0) * 1000))
     return JSONResponse(content=resp)

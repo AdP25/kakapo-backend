@@ -9,7 +9,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seed-cache",
         action="store_true",
-        help="Pre-populate the semantic cache on startup",
+        help="Pre-populate exact_cache with demo Q/A pairs on startup",
     )
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8000)

@@ -17,16 +17,6 @@ def init_db(conn: sqlite3.Connection) -> None:
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
 
-        CREATE TABLE IF NOT EXISTS semantic_cache (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            query_text TEXT NOT NULL,
-            query_hash TEXT NOT NULL UNIQUE,
-            response_json TEXT NOT NULL,
-            created_at REAL NOT NULL,
-            last_used_at REAL NOT NULL,
-            hit_count INTEGER NOT NULL DEFAULT 0
-        );
-
         CREATE TABLE IF NOT EXISTS requests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             ts DATETIME DEFAULT CURRENT_TIMESTAMP,

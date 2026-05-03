@@ -9,8 +9,8 @@ from fastapi import FastAPI
 from app.core.config import DEFAULT_MODEL
 from app.core.tokenizer import get_tokenizer
 from app.db.database import close_db, get_db
-from app.routers import auth, chat, pages, semantic_cache, stats
-from app.services.cache_service import rebuild_faiss_index_from_db, seed_semantic_cache
+from app.routers import auth, chat, pages, stats
+from app.services.cache_service import seed_demo_exact_cache
 
 
 @asynccontextmanager
@@ -18,11 +18,10 @@ async def lifespan(app: FastAPI):
     get_db()
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, get_tokenizer)
-    await loop.run_in_executor(None, rebuild_faiss_index_from_db)
     if os.getenv("SEED_CACHE", "false").lower() == "true":
         await loop.run_in_executor(
             None,
-            lambda: seed_semantic_cache(DEFAULT_MODEL, lambda s: len(get_tokenizer().encode(s))),
+            lambda: seed_demo_exact_cache(DEFAULT_MODEL, lambda s: len(get_tokenizer().encode(s))),
         )
     yield
     close_db()
@@ -31,13 +30,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
     title="Kakapo LLM proxy",
-    description="Exact + semantic cache proxy with usage stats.",
+    description="Exact-match cache + upstream LLM; semantic similarity caching is intended for AWS.",
 )
 
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(stats.router)
-app.include_router(semantic_cache.router)
 app.include_router(pages.router)
 
 

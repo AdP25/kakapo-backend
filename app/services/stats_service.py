@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import time
 from datetime import datetime, timedelta
 
 import tiktoken
 
-from app.core.config import GPT4O_PRICE, GEMINI_PRICE, SEMANTIC_MAX_ENTRIES, SEMANTIC_THRESHOLD, SEMANTIC_TTL_SECONDS
+from app.core.config import GPT4O_PRICE, GEMINI_PRICE
 from app.db.database import get_db
 
 
@@ -41,7 +40,9 @@ def log_request(
     latency_ms: int,
 ) -> None:
     db = get_db()
-    cost, counterfactual, saved, tokens_saved = compute_costs(tokens_in, tokens_out, cache_status in ("exact", "semantic"))
+    cost, counterfactual, saved, tokens_saved = compute_costs(
+        tokens_in, tokens_out, cache_status in ("exact", "semantic")
+    )
     db.execute(
         """
         INSERT INTO requests
@@ -104,10 +105,6 @@ def build_stats() -> dict:
         for r in recent_rows
     ]
 
-    sem_row = db.execute(
-        "SELECT COUNT(*) AS total, AVG(hit_count) AS avg_hits, MIN(created_at) AS oldest FROM semantic_cache"
-    ).fetchone()
-
     return {
         "total_spent_usd": round(row["total_spent_usd"], 6),
         "total_saved_usd": round(row["total_saved_usd"], 6),
@@ -117,11 +114,7 @@ def build_stats() -> dict:
         "timeline": timeline,
         "recent_requests": recent_requests,
         "semantic_cache": {
-            "total_entries": sem_row["total"] or 0,
-            "avg_hit_count": round(sem_row["avg_hits"] or 0, 2),
-            "oldest_entry_age_hours": round((time.time() - (sem_row["oldest"] or time.time())) / 3600, 1),
-            "max_entries": SEMANTIC_MAX_ENTRIES,
-            "ttl_hours": SEMANTIC_TTL_SECONDS / 3600 if SEMANTIC_TTL_SECONDS > 0 else None,
-            "threshold": SEMANTIC_THRESHOLD,
+            "local_enabled": False,
+            "note": "Semantic similarity caching is not run in this service; use AWS (or another tier) for that.",
         },
     }

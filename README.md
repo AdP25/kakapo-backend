@@ -2,10 +2,11 @@
 
 FastAPI-based LLM proxy with:
 
-- exact cache (SQLite)
-- semantic cache (FAISS + sentence-transformers embeddings)
+- exact-match response cache (SQLite)
 - request/cost analytics endpoints
 - JWT auth (`/auth/register`, `/auth/login`, `/auth/me`)
+
+Semantic / embedding-based caching is **not** implemented in this service (intended for AWS or another tier).
 
 ## Repository layout
 
@@ -63,7 +64,6 @@ python seed_cache.py
 See `.env.example`. Important keys include:
 
 - `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `DEFAULT_MODEL`, `MOCK_MODE`
-- Semantic cache: `SEMANTIC_THRESHOLD`, `SEMANTIC_TTL_SECONDS`, `SEMANTIC_MAX_ENTRIES`
 - Auth: `JWT_SECRET`, `JWT_EXPIRE_MINUTES`
 
 ## API overview
@@ -72,7 +72,6 @@ See `.env.example`. Important keys include:
 - `POST /auth/register`, `POST /auth/login`, `GET /auth/me`
 - `POST /v1/chat/completions`
 - `GET /api/stats`
-- `GET` / `DELETE /api/semantic-cache`
 
 Open **`/docs`** for interactive Swagger UI.
 
