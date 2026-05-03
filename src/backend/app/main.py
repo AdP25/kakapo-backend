@@ -51,6 +51,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(request: dict):
     t0 = time.time()
