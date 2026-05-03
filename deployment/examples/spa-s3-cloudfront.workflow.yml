@@ -1,0 +1,51 @@
+# Copy this file to your FRONTEND repo as:
+#   .github/workflows/deploy-aws-spa.yml
+#
+# Purpose: sync a static build folder to S3 and invalidate CloudFront after push to main.
+#
+# GitHub secrets: AWS_ROLE_ARN (OIDC role with s3:PutObject, s3:DeleteObject on bucket prefix,
+#   cloudfront:CreateInvalidation on distribution)
+# GitHub variables: AWS_REGION, S3_BUCKET, CLOUDFRONT_DISTRIBUTION_ID
+# Adjust build command and output directory (dist) to match your SPA (Vite default: dist/).
+
+name: Deploy SPA (S3 + CloudFront)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install and build
+        run: |
+          npm install
+          npm run build
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION != '' && vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync dist/ "s3://${{ vars.S3_BUCKET }}/" --delete
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*"

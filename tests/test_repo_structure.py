@@ -7,6 +7,8 @@ def test_expected_paths_exist():
         root / "README.md",
         root / "pyproject.toml",
         root / ".env.example",
+        root / "Dockerfile",
+        root / "requirements-docker.txt",
         root / "app" / "main.py",
         root / "proxy.py",
         root / "seed_cache.py",

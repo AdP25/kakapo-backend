@@ -41,6 +41,11 @@ app.include_router(semantic_cache.router)
 app.include_router(pages.router)
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 def run(host: str = "0.0.0.0", port: int = 8000) -> None:
     import uvicorn
 
