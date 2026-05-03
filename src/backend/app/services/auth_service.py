@@ -1,73 +1,98 @@
 from __future__ import annotations
 
-import hashlib
-import secrets
 import time
+from typing import Optional
 
+import bcrypt
+import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.core.config import ADMIN_API_KEY
+from app.core.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
 from app.db.database import get_db
+from app.schemas.auth import UserPublic
 
-_bearer = HTTPBearer()
-
-
-def _hash_key(raw: str) -> str:
-    return hashlib.sha256(raw.encode()).hexdigest()
+_bearer = HTTPBearer(auto_error=False)
 
 
-def create_key(name: str) -> str:
-    raw = "kk_" + secrets.token_hex(32)
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def hash_password(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(plain: str, password_hash: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), password_hash.encode("utf-8"))
+    except ValueError:
+        return False
+
+
+def create_access_token(user_id: int, email: str) -> str:
+    now = time.time()
+    exp = now + JWT_EXPIRE_MINUTES * 60
+    payload = {"sub": str(user_id), "email": email, "iat": now, "exp": exp}
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def decode_token(token: str) -> dict:
+    return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+
+def register_user(email: str, password: str) -> UserPublic:
+    email_n = _normalize_email(email)
     db = get_db()
-    db.execute(
-        "INSERT INTO api_keys (key_hash, name, created_at) VALUES (?, ?, ?)",
-        (_hash_key(raw), name, time.time()),
+    row = db.execute("SELECT id FROM users WHERE email = ?", (email_n,)).fetchone()
+    if row:
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    pw_hash = hash_password(password)
+    created_at = time.time()
+    cur = db.execute(
+        "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
+        (email_n, pw_hash, created_at),
     )
     db.commit()
-    return raw
+    user_id = int(cur.lastrowid)
+    return UserPublic(id=user_id, email=email_n, created_at=created_at)
 
 
-def list_keys() -> list[dict]:
-    rows = get_db().execute(
-        "SELECT id, name, created_at, last_used_at, is_active FROM api_keys ORDER BY created_at DESC"
-    ).fetchall()
-    return [
-        {
-            "id": r["id"],
-            "name": r["name"],
-            "created_at": r["created_at"],
-            "last_used_at": r["last_used_at"],
-            "is_active": bool(r["is_active"]),
-        }
-        for r in rows
-    ]
-
-
-def revoke_key(key_id: int) -> bool:
-    db = get_db()
-    changed = db.execute(
-        "UPDATE api_keys SET is_active = 0 WHERE id = ?", (key_id,)
-    ).rowcount
-    db.commit()
-    return changed > 0
-
-
-def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(_bearer)) -> int:
-    key_hash = _hash_key(credentials.credentials)
+def authenticate_user(email: str, password: str) -> UserPublic:
+    email_n = _normalize_email(email)
     db = get_db()
     row = db.execute(
-        "SELECT id FROM api_keys WHERE key_hash = ? AND is_active = 1", (key_hash,)
+        "SELECT id, email, password_hash, created_at FROM users WHERE email = ?",
+        (email_n,),
+    ).fetchone()
+    if not row or not verify_password(password, row["password_hash"]):
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+    return UserPublic(id=row["id"], email=row["email"], created_at=row["created_at"])
+
+
+def get_user_by_id(user_id: int) -> Optional[UserPublic]:
+    row = get_db().execute(
+        "SELECT id, email, created_at FROM users WHERE id = ?",
+        (user_id,),
     ).fetchone()
     if not row:
-        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
-    db.execute("UPDATE api_keys SET last_used_at = ? WHERE id = ?", (time.time(), row["id"]))
-    db.commit()
-    return row["id"]
+        return None
+    return UserPublic(id=row["id"], email=row["email"], created_at=row["created_at"])
 
 
-def verify_admin_key(credentials: HTTPAuthorizationCredentials = Depends(_bearer)) -> None:
-    if not ADMIN_API_KEY:
-        raise HTTPException(status_code=503, detail="ADMIN_API_KEY is not configured")
-    if not secrets.compare_digest(credentials.credentials, ADMIN_API_KEY):
-        raise HTTPException(status_code=401, detail="Invalid admin key")
+def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
+) -> UserPublic:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = decode_token(credentials.credentials)
+        user_id = int(payload["sub"])
+    except (jwt.InvalidTokenError, jwt.PyJWTError, KeyError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user

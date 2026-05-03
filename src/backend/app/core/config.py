@@ -20,3 +20,10 @@ GPT4O_PRICE = {"in": 2.50, "out": 10.00}
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 DB_PATH = str(BACKEND_DIR / "proxy.db")
+
+# JWT (auth) — override JWT_SECRET in production
+JWT_SECRET = (
+    os.getenv("JWT_SECRET") or "dev-only-secret-min-32-chars-not-for-prod!!"
+).strip()
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "10080"))  # default 7 days
