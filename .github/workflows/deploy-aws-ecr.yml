@@ -1,14 +1,12 @@
 # Build and push the API image to Amazon ECR. Optionally roll an ECS service.
 #
-# Prerequisites (once per AWS account / repo):
-# 1. Create an ECR repository.
-# 2. IAM OIDC provider for GitHub + an IAM role with ECR push permissions for that repo.
-# 3. GitHub repo secret: AWS_ROLE_ARN
-# 4. GitHub REPOSITORY variables (this repo → Settings → Secrets and variables → Actions → Variables):
-#      AWS_REGION        e.g. ap-south-1
-#      ECR_REPOSITORY    e.g. kakapo/kakapo-backend
-#    (There are no defaults — wrong/missing values caused pushes to us-east-1/kakapo-backend by mistake.)
-# 5. Optional: ENABLE_ECS_DEPLOY, ECS_CLUSTER, ECS_SERVICE
+# This repo must define (either is fine — use Variables if you prefer not to use Secrets):
+#   AWS_REGION        e.g. ap-south-1
+#   ECR_REPOSITORY    e.g. kakapo/kakapo-backend
+# Put them under: Settings → Secrets and variables → Actions → Variables  OR  → Secrets
+#
+# Also required: secret AWS_ROLE_ARN (OIDC role).
+# Optional: ENABLE_ECS_DEPLOY, ECS_CLUSTER, ECS_SERVICE (variables)
 
 name: Deploy backend (ECR)
 
@@ -24,20 +22,22 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    env:
+      # Prefer Variables; fall back to Secrets (same names) if your org only uses the Secrets tab.
+      AWS_REGION: ${{ vars.AWS_REGION != '' && vars.AWS_REGION || secrets.AWS_REGION }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY != '' && vars.ECR_REPOSITORY || secrets.ECR_REPOSITORY }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify ECR variables
-        env:
-          AWS_REGION: ${{ vars.AWS_REGION }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      - name: Verify ECR config
         run: |
           set -euo pipefail
-          if [ -z "${AWS_REGION}" ] || [ -z "${ECR_REPOSITORY}" ]; then
-            echo "::error::Set repository Actions VARIABLES (not only secrets) for this repo:"
-            echo "::error::  Settings → Secrets and variables → Actions → Variables → New repository variable"
-            echo "::error::  AWS_REGION        = region where ECR exists (e.g. ap-south-1)"
-            echo "::error::  ECR_REPOSITORY    = exact ECR repo name (e.g. kakapo/kakapo-backend)"
+          if [ -z "${AWS_REGION:-}" ] || [ -z "${ECR_REPOSITORY:-}" ]; then
+            echo "::error::AWS_REGION and ECR_REPOSITORY are empty in this workflow run."
+            echo "::error::Add them for the repository that runs this workflow (not the org root unless variables are inherited):"
+            echo "::error::  Settings → Secrets and variables → Actions"
+            echo "::error::  Tab **Variables**: New variable AWS_REGION = ap-south-1, ECR_REPOSITORY = kakapo/kakapo-backend"
+            echo "::error::  OR tab **Secrets**: same names (values are not sensitive; avoids org limits on Variables)."
             exit 1
           fi
           echo "ECR target: ${AWS_REGION} / ${ECR_REPOSITORY}"
@@ -46,7 +46,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: ecr
@@ -56,7 +56,6 @@ jobs:
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         run: |
           set -eux
           echo "Pushing to: ${REGISTRY}/${ECR_REPOSITORY}"

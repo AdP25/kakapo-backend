@@ -84,7 +84,7 @@ Open **`/docs`** for interactive Swagger UI.
 2. Configure **OIDC** for GitHub Actions and an IAM role that can push to that repository (and optionally `ecs:UpdateService` for the deploy step).
 3. In the GitHub repo **Settings → Secrets and variables → Actions**:
    - Secret: `AWS_ROLE_ARN` (assume-role ARN for OIDC).
-   - **Variables (required):** **`AWS_REGION`** and **`ECR_REPOSITORY`** — add them under **Variables**, not only Secrets. Example: `ap-south-1` and `kakapo/kakapo-backend`. The workflow has **no region/repo defaults**; if they are missing, the first step fails with an explicit error instead of pushing to the wrong registry.
+   - **`AWS_REGION`** and **`ECR_REPOSITORY`** (required): add under **Actions → Variables** *or* **Actions → Secrets** with those exact names (the workflow reads Variables first, then Secrets). Example values: `ap-south-1` and `kakapo/kakapo-backend`. If both are missing, the workflow fails at the first step with a pointer to this setting.
    - Optional: `ENABLE_ECS_DEPLOY` = `true`, plus `ECS_CLUSTER` and `ECS_SERVICE`, to force a new ECS deployment after each push.
 4. Run the API on **ECS Fargate**, **App Runner**, or **EC2** from that image. Inject env at runtime (see `.env.example`); do not bake secrets into the image.
 
