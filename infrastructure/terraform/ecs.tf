@@ -54,8 +54,8 @@ resource "aws_ecs_task_definition" "api" {
         valueFrom = aws_secretsmanager_secret.openai.arn
       },
       {
-        name      = "ANTHROPIC_API_KEY"
-        valueFrom = aws_secretsmanager_secret.anthropic.arn
+        name      = "GEMINI_API_KEY"
+        valueFrom = aws_secretsmanager_secret.gemini.arn
       },
       {
         name      = "INITIAL_ADMIN_KEY"

@@ -7,21 +7,21 @@ import random
 from typing import List, Optional
 
 from app.providers.base import LLMMessage, LLMResponse
-from app.providers.anthropic_provider import AnthropicProvider
+from app.providers.gemini_provider import GeminiProvider
 from app.providers.openai_provider import OpenAIProvider
 from app.reliability import circuit_breaker
 from app.reliability.response_validator import validate, ValidationResult
 from app.core.config import settings
 
 # Singleton provider instances
-_anthropic = AnthropicProvider()
+_gemini = GeminiProvider()
 _openai = OpenAIProvider()
 
 # Model map: tier → (primary_provider, primary_model, fallback_provider, fallback_model)
 _ROUTING = {
-    "simple":   (_anthropic, "claude-haiku-4-5-20251001", _openai, "gpt-4o-mini"),
-    "standard": (_anthropic, "claude-sonnet-4-6",         _openai, "gpt-4o"),
-    "complex":  (_anthropic, "claude-opus-4-7",           _openai, "gpt-4o"),
+    "simple":   (_gemini, "gemini-2.0-flash",   _openai, "gpt-4o-mini"),
+    "standard": (_gemini, "gemini-1.5-pro",     _openai, "gpt-4o"),
+    "complex":  (_gemini, "gemini-1.5-pro",     _openai, "gpt-4o"),
 }
 
 _TIER_ORDER = ["simple", "standard", "complex"]

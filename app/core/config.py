@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
 
-    # Anthropic — primary LLM
-    anthropic_api_key: str = ""
+    # Gemini — primary LLM
+    gemini_api_key: str = ""
 
     # Seed on first startup when DB is empty
     initial_admin_key: Optional[str] = None

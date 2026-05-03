@@ -35,7 +35,7 @@ resource "aws_iam_role_policy" "ecs_execution_secrets" {
       ]
       Resource = [
         aws_secretsmanager_secret.openai.arn,
-        aws_secretsmanager_secret.anthropic.arn,
+        aws_secretsmanager_secret.gemini.arn,
         aws_secretsmanager_secret.db_password.arn,
         aws_secretsmanager_secret.initial_admin_key.arn,
       ]
@@ -71,7 +71,7 @@ resource "aws_iam_role_policy" "ecs_task_secrets_read" {
       Action = ["secretsmanager:GetSecretValue"]
       Resource = [
         aws_secretsmanager_secret.openai.arn,
-        aws_secretsmanager_secret.anthropic.arn,
+        aws_secretsmanager_secret.gemini.arn,
         aws_secretsmanager_secret.db_password.arn,
         aws_secretsmanager_secret.initial_admin_key.arn,
       ]

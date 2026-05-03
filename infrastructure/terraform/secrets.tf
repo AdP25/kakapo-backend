@@ -9,15 +9,15 @@ resource "aws_secretsmanager_secret_version" "openai" {
   secret_string = var.openai_api_key
 }
 
-resource "aws_secretsmanager_secret" "anthropic" {
-  name                    = "${local.prefix}/anthropic_api_key"
+resource "aws_secretsmanager_secret" "gemini" {
+  name                    = "${local.prefix}/gemini_api_key"
   recovery_window_in_days = 0
   tags                    = local.common_tags
 }
 
-resource "aws_secretsmanager_secret_version" "anthropic" {
-  secret_id     = aws_secretsmanager_secret.anthropic.id
-  secret_string = var.anthropic_api_key
+resource "aws_secretsmanager_secret_version" "gemini" {
+  secret_id     = aws_secretsmanager_secret.gemini.id
+  secret_string = var.gemini_api_key
 }
 
 resource "aws_secretsmanager_secret" "db_password" {

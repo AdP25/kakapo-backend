@@ -6,7 +6,7 @@ app_name            = "kakapo"
 db_password         = "REPLACE_ME"
 
 openai_api_key      = "sk-REPLACE_ME"
-anthropic_api_key   = "sk-ant-REPLACE_ME"
+gemini_api_key      = "AIza-REPLACE_ME"
 
 # This is the raw key value your users/testers will call the API with
 # Generate one: openssl rand -base64 32
