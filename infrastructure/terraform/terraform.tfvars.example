@@ -1,5 +1,5 @@
-aws_region          = "us-east-1"
-environment         = "prod"
+aws_region          = "ap-south-1"
+environment         = "dev"
 app_name            = "kakapo"
 
 # Generate a strong random password: openssl rand -base64 32
@@ -11,4 +11,4 @@ gemini_api_key      = "AIza-REPLACE_ME"
 # This is the raw key value your users/testers will call the API with
 # Generate one: openssl rand -base64 32
 initial_admin_key   = "REPLACE_ME"
-initial_tenant_name = "My Org"
+initial_tenant_name = "Demo Org"
