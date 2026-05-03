@@ -1,5 +1,7 @@
 # Secrets — never commit
 .env
+.env.local
+.env.*.local
 infrastructure/terraform/terraform.tfvars
 
 # Terraform state and cache
@@ -9,16 +11,72 @@ infrastructure/terraform/terraform.tfvars
 *.tfplan
 .terraform.lock.hcl
 
+.DS_Store
+Thumbs.db
+
 # Python
 __pycache__/
 *.py[cod]
-*.egg-info/
+*$py.class
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environments (never commit — huge)
 .venv/
 venv/
-dist/
-build/
+env/
+ENV/
 
-# IDE
-.vscode/
+# Packaging / installs
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# Test / lint / typecheck caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Runtime / local data (SQLite, demos)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.pkl
+*.log
+
+# ML / embedding caches (downloads can be gigabytes)
+.cache/
+.huggingface/
+transformers_cache/
+torch_hub/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+
+# Jupyter / notebooks checkpoints
+.ipynb_checkpoints/
+
+# Cursor (local editor)
+.cursor/
+
+# IDE / editors
 .idea/
+.vscode/
 *.swp
+*.swo
+*~
+
+# OS / misc
+*.tmp
+*.temp

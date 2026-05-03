@@ -1,0 +1,9 @@
+# Installed in the Docker image after CPU-only torch (see Dockerfile).
+# Keeps sentence-transformers off the same resolver pass as torch so PyPI
+# does not pull CUDA/nvidia meta-wheels into the image.
+fastapi>=0.110,<1
+uvicorn[standard]>=0.27,<1
+httpx>=0.27,<1
+tiktoken>=0.6
+numpy>=1.24
+faiss-cpu>=1.7.4,<2

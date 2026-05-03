@@ -1,0 +1,72 @@
+# Build and push the API image to Amazon ECR. Optionally roll an ECS service.
+#
+# This repo must define (either is fine — use Variables if you prefer not to use Secrets):
+#   AWS_REGION        e.g. ap-south-1
+#   ECR_REPOSITORY    e.g. kakapo/kakapo-backend
+# Put them under: Settings → Secrets and variables → Actions → Variables  OR  → Secrets
+#
+# Also required: secret AWS_ROLE_ARN (OIDC role).
+# Optional: ENABLE_ECS_DEPLOY, ECS_CLUSTER, ECS_SERVICE (variables)
+
+name: Deploy backend (ECR)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      # Prefer Variables; fall back to Secrets (same names) if your org only uses the Secrets tab.
+      AWS_REGION: ${{ vars.AWS_REGION != '' && vars.AWS_REGION || secrets.AWS_REGION }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY != '' && vars.ECR_REPOSITORY || secrets.ECR_REPOSITORY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify ECR config
+        run: |
+          set -euo pipefail
+          if [ -z "${AWS_REGION:-}" ] || [ -z "${ECR_REPOSITORY:-}" ]; then
+            echo "::error::AWS_REGION and ECR_REPOSITORY are empty in this workflow run."
+            echo "::error::Add them for the repository that runs this workflow (not the org root unless variables are inherited):"
+            echo "::error::  Settings → Secrets and variables → Actions"
+            echo "::error::  Tab **Variables**: New variable AWS_REGION = ap-south-1, ECR_REPOSITORY = kakapo/kakapo-backend"
+            echo "::error::  OR tab **Secrets**: same names (values are not sensitive; avoids org limits on Variables)."
+            exit 1
+          fi
+          echo "ECR target: ${AWS_REGION} / ${ECR_REPOSITORY}"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -eux
+          echo "Pushing to: ${REGISTRY}/${ECR_REPOSITORY}"
+          docker build -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" -t "$REGISTRY/$ECR_REPOSITORY:latest" .
+          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$REGISTRY/$ECR_REPOSITORY:latest"
+
+      - name: Force ECS new deployment
+        if: ${{ vars.ENABLE_ECS_DEPLOY == 'true' && vars.ECS_CLUSTER != '' && vars.ECS_SERVICE != '' }}
+        env:
+          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+          ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+        run: |
+          aws ecs update-service --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" --force-new-deployment
