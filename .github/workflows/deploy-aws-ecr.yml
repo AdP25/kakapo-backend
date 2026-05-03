@@ -1,19 +1,14 @@
 # Build and push the API image to Amazon ECR. Optionally roll an ECS service.
 #
 # Prerequisites (once per AWS account / repo):
-# 1. Create an ECR repository (name must match ECR_REPOSITORY below or override with repo variable).
-# 2. IAM OIDC provider for GitHub + an IAM role with:
-#    - ecr:GetAuthorizationToken (on *)
-#    - ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:InitiateLayerUpload,
-#      ecr:PutImage, ecr:UploadLayerPart on the ECR repo ARN
-#    - (optional) ecs:UpdateService, ecs:DescribeServices on your cluster/service for deploy step
-# 3. GitHub repo secret: AWS_ROLE_ARN = arn:aws:iam::ACCOUNT:role/ROLE_NAME
-# 4. GitHub repo variables (Settings → Secrets and variables → Actions → Variables):
-#    - AWS_REGION — MUST match the region where the ECR repo exists (e.g. ap-south-1).
-#      If unset, this workflow defaults to us-east-1 and pushes will fail for Mumbai-only repos.
-#    - ECR_REPOSITORY — MUST match the ECR repo name exactly (e.g. kakapo/kakapo-backend).
-#      If unset, defaults to kakapo-backend (no namespace) and will 404 if your repo is namespaced.
-#    - ENABLE_ECS_DEPLOY = true (optional) + ECS_CLUSTER + ECS_SERVICE to force new deployment
+# 1. Create an ECR repository.
+# 2. IAM OIDC provider for GitHub + an IAM role with ECR push permissions for that repo.
+# 3. GitHub repo secret: AWS_ROLE_ARN
+# 4. GitHub REPOSITORY variables (this repo → Settings → Secrets and variables → Actions → Variables):
+#      AWS_REGION        e.g. ap-south-1
+#      ECR_REPOSITORY    e.g. kakapo/kakapo-backend
+#    (There are no defaults — wrong/missing values caused pushes to us-east-1/kakapo-backend by mistake.)
+# 5. Optional: ENABLE_ECS_DEPLOY, ECS_CLUSTER, ECS_SERVICE
 
 name: Deploy backend (ECR)
 
@@ -32,11 +27,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify ECR variables
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${AWS_REGION}" ] || [ -z "${ECR_REPOSITORY}" ]; then
+            echo "::error::Set repository Actions VARIABLES (not only secrets) for this repo:"
+            echo "::error::  Settings → Secrets and variables → Actions → Variables → New repository variable"
+            echo "::error::  AWS_REGION        = region where ECR exists (e.g. ap-south-1)"
+            echo "::error::  ECR_REPOSITORY    = exact ECR repo name (e.g. kakapo/kakapo-backend)"
+            exit 1
+          fi
+          echo "ECR target: ${AWS_REGION} / ${ECR_REPOSITORY}"
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION != '' && vars.AWS_REGION || 'us-east-1' }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: ecr
@@ -46,10 +56,10 @@ jobs:
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY != '' && vars.ECR_REPOSITORY || 'kakapo-backend' }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         run: |
           set -eux
-          echo "Pushing to: ${REGISTRY}/${ECR_REPOSITORY} (region from configure-aws-credentials step)"
+          echo "Pushing to: ${REGISTRY}/${ECR_REPOSITORY}"
           docker build -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" -t "$REGISTRY/$ECR_REPOSITORY:latest" .
           docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker push "$REGISTRY/$ECR_REPOSITORY:latest"
