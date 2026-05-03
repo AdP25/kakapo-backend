@@ -41,7 +41,7 @@ class CacheEntry(Base):
     entry_id = Column(String(36), primary_key=True, default=_uuid)
     tenant_id = Column(String(36), ForeignKey("tenants.tenant_id"), nullable=False)
     query_text = Column(Text, nullable=False)
-    query_embedding = Column(Vector(1536), nullable=False)
+    query_embedding = Column(Vector(768), nullable=False)
     response_text = Column(Text, nullable=False)
     model_used = Column(String(100), nullable=False)
     visibility = Column(String(100), nullable=False, default="global")

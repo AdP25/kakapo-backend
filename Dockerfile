@@ -4,7 +4,7 @@ WORKDIR /app
 
 # System deps for asyncpg + argon2
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libpq-dev \
+    gcc libpq-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

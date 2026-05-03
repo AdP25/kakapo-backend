@@ -23,6 +23,15 @@ async def _create_tables() -> None:
     """Create all tables + pgvector extension if they don't exist."""
     async with engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        # Migration: resize query_embedding from vector(1536) to vector(768) if needed
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                DROP INDEX IF EXISTS cache_entries_embedding_idx;
+                ALTER TABLE cache_entries ALTER COLUMN query_embedding TYPE vector(768);
+            EXCEPTION WHEN OTHERS THEN NULL;
+            END $$;
+        """))
         await conn.run_sync(models.Base.metadata.create_all)
         # HNSW index — idempotent
         await conn.execute(text("""

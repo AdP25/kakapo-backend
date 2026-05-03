@@ -7,7 +7,8 @@ set -euo pipefail
 
 REGION="${1:-us-east-1}"
 ACCOUNT_ID="${2:?Please pass your AWS account ID as second argument}"
-APP="kakapo-prod"
+ENV="${3:-dev}"
+APP="kakapo-${ENV}"
 IMAGE_TAG="latest"
 ECR_URL="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${APP}-api"
 

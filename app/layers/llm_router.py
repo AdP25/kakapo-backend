@@ -19,9 +19,9 @@ _openai = OpenAIProvider()
 
 # Model map: tier → (primary_provider, primary_model, fallback_provider, fallback_model)
 _ROUTING = {
-    "simple":   (_gemini, "gemini-2.0-flash",   _openai, "gpt-4o-mini"),
-    "standard": (_gemini, "gemini-1.5-pro",     _openai, "gpt-4o"),
-    "complex":  (_gemini, "gemini-1.5-pro",     _openai, "gpt-4o"),
+    "simple":   (_gemini, "gemini-2.5-flash",   _openai, "gpt-4o-mini"),
+    "standard": (_gemini, "gemini-2.5-flash",   _openai, "gpt-4o"),
+    "complex":  (_gemini, "gemini-2.5-flash",   _openai, "gpt-4o"),
 }
 
 _TIER_ORDER = ["simple", "standard", "complex"]

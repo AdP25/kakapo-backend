@@ -7,14 +7,17 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List
 
-from openai import AsyncOpenAI
+import httpx
 from sqlalchemy import text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.db import CacheEntry, ThresholdConfig
 
-_openai = AsyncOpenAI(api_key=settings.openai_api_key)
+_embed_client = httpx.AsyncClient(
+    base_url="https://generativelanguage.googleapis.com",
+    timeout=30.0,
+)
 
 # Default thresholds used when no per-tenant config row exists
 _DEFAULT_THRESHOLDS: dict[str, float] = {
@@ -43,12 +46,17 @@ class CacheHit:
 
 
 async def embed(text_: str) -> List[float]:
-    resp = await _openai.embeddings.create(
-        model=settings.embedding_model,
-        input=text_,
-        dimensions=settings.embedding_dimensions,
+    resp = await _embed_client.post(
+        f"/v1beta/models/{settings.embedding_model}:embedContent",
+        params={"key": settings.gemini_api_key},
+        json={
+            "model": f"models/{settings.embedding_model}",
+            "content": {"parts": [{"text": text_}]},
+            "taskType": "RETRIEVAL_QUERY",
+        },
     )
-    return resp.data[0].embedding
+    resp.raise_for_status()
+    return resp.json()["embedding"]["values"]
 
 
 def _recency_score(created_at: datetime) -> float:
@@ -94,11 +102,11 @@ async def lookup(
             created_at,
             stale,
             ttl_expires_at,
-            1 - (query_embedding <=> :emb::vector) AS cosine_sim
+            1 - (query_embedding <=> CAST(:emb AS vector)) AS cosine_sim
         FROM cache_entries
         WHERE tenant_id = :tid
           AND (visibility = 'global' OR visibility = :role_vis)
-        ORDER BY query_embedding <=> :emb::vector
+        ORDER BY query_embedding <=> CAST(:emb AS vector)
         LIMIT 5
     """)
 
@@ -201,7 +209,7 @@ async def store(
                 source_tag, ttl_expires_at, stale,
                 hit_count, created_at, last_accessed_at
             ) VALUES (
-                :eid, :tid, :qt, :qe::vector,
+                :eid, :tid, :qt, CAST(:qe AS vector),
                 :rt, :mu, :vis,
                 :sdid, :sdv,
                 :stag, :ttl, false,

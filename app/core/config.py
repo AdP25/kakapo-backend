@@ -19,10 +19,12 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379"
 
-    # OpenAI — embeddings + GPT-4o fallback
+    # OpenAI — GPT-4o fallback
     openai_api_key: str = ""
-    embedding_model: str = "text-embedding-3-small"
-    embedding_dimensions: int = 1536
+
+    # Embeddings via Gemini
+    embedding_model: str = "gemini-embedding-001"
+    embedding_dimensions: int = 768
 
     # Gemini — primary LLM
     gemini_api_key: str = ""

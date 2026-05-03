@@ -7,8 +7,8 @@ resource "aws_db_subnet_group" "main" {
 resource "aws_db_instance" "postgres" {
   identifier        = "${local.prefix}-postgres"
   engine            = "postgres"
-  engine_version    = "15.6"
-  instance_class    = "db.t3.medium"
+  engine_version    = "15"
+  instance_class    = "db.t3.micro"
   allocated_storage = 20
   storage_type      = "gp3"
 
@@ -22,7 +22,7 @@ resource "aws_db_instance" "postgres" {
   # pgvector is installed via the app's CREATE EXTENSION at startup
   parameter_group_name = aws_db_parameter_group.postgres.name
 
-  backup_retention_period = 7
+  backup_retention_period = 0
   skip_final_snapshot     = var.environment != "prod"
   deletion_protection     = var.environment == "prod"
   multi_az                = var.environment == "prod"
