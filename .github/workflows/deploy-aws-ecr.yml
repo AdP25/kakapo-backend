@@ -9,8 +9,10 @@
 #    - (optional) ecs:UpdateService, ecs:DescribeServices on your cluster/service for deploy step
 # 3. GitHub repo secret: AWS_ROLE_ARN = arn:aws:iam::ACCOUNT:role/ROLE_NAME
 # 4. GitHub repo variables (Settings → Secrets and variables → Actions → Variables):
-#    - AWS_REGION (e.g. us-east-1)
-#    - ECR_REPOSITORY (e.g. kakapo-backend)
+#    - AWS_REGION — MUST match the region where the ECR repo exists (e.g. ap-south-1).
+#      If unset, this workflow defaults to us-east-1 and pushes will fail for Mumbai-only repos.
+#    - ECR_REPOSITORY — MUST match the ECR repo name exactly (e.g. kakapo/kakapo-backend).
+#      If unset, defaults to kakapo-backend (no namespace) and will 404 if your repo is namespaced.
 #    - ENABLE_ECS_DEPLOY = true (optional) + ECS_CLUSTER + ECS_SERVICE to force new deployment
 
 name: Deploy backend (ECR)
@@ -47,6 +49,7 @@ jobs:
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY != '' && vars.ECR_REPOSITORY || 'kakapo-backend' }}
         run: |
           set -eux
+          echo "Pushing to: ${REGISTRY}/${ECR_REPOSITORY} (region from configure-aws-credentials step)"
           docker build -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" -t "$REGISTRY/$ECR_REPOSITORY:latest" .
           docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker push "$REGISTRY/$ECR_REPOSITORY:latest"

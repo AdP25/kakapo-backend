@@ -84,7 +84,7 @@ Open **`/docs`** for interactive Swagger UI.
 2. Configure **OIDC** for GitHub Actions and an IAM role that can push to that repository (and optionally `ecs:UpdateService` for the deploy step).
 3. In the GitHub repo **Settings → Secrets and variables → Actions**:
    - Secret: `AWS_ROLE_ARN` (assume-role ARN for OIDC).
-   - Variables: `AWS_REGION`, `ECR_REPOSITORY` (must match the ECR repo name, e.g. `kakapo/kakapo-backend`).
+   - Variables: **`AWS_REGION`** and **`ECR_REPOSITORY`** are required unless your ECR repo really is named `kakapo-backend` in **`us-east-1`**. Example: `AWS_REGION=ap-south-1`, `ECR_REPOSITORY=kakapo/kakapo-backend`. If these are wrong, the image builds but **`docker push`** fails with *repository … does not exist*.
    - Optional: `ENABLE_ECS_DEPLOY` = `true`, plus `ECS_CLUSTER` and `ECS_SERVICE`, to force a new ECS deployment after each push.
 4. Run the API on **ECS Fargate**, **App Runner**, or **EC2** from that image. Inject env at runtime (see `.env.example`); do not bake secrets into the image.
 
